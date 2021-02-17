@@ -1,0 +1,3 @@
+- name: Configure as license slave
+  shell: /opt/splunk/bin/splunk edit licenser-localslave -master_uri "https://{{ manager_IP }}:8089"
+  become: yes

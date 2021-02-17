@@ -1,0 +1,18 @@
+- name: Search Head Captain
+  connection: ssh
+  hosts: "{{ groups['search'][0] }}"
+
+  tasks:
+
+  - include_tasks: licenseSlave.yml
+
+  - name: dummy search to create splunk auth token for cli usage
+    shell: /opt/splunk/bin/splunk search 'search' -auth '{{ username }}:{{ password }}'
+    become: yes
+
+  - name: Assign cluster captain
+    shell: /opt/splunk/bin/splunk bootstrap shcluster-captain -servers_list "{{ ('https://') + ':8089,https://'.join((groups['search'])) + ':8089'}}"
+    become: yes
+
+
+

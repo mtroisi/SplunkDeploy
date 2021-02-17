@@ -1,0 +1,46 @@
+- name: Manager
+  connection: ssh
+  hosts: manager
+  vars_prompt:
+
+    - name: RF
+      prompt: What is the desired index replication factor?
+      private: no
+
+    - name: SF
+      prompt: What is the desired search factor?
+      private: no
+
+    - name: cluster_label
+      prompt: Please assign a cluster label
+      private: no
+
+  tasks:
+
+  - include_tasks: install.yml
+
+  - name: Configure as manager
+    shell: /opt/splunk/bin/splunk edit cluster-config -mode manager -replication_factor {{ RF }} -search_factor {{ SF }} -cluster_label {{ cluster_label }}
+    become: yes
+
+  - name: Configure search head clustering
+    blockinfile:
+      block: "{{ lookup('file', './droppings/shcluster.conf') }}"
+      path: /opt/splunk/etc/system/local/server.conf
+    become: yes
+
+  - name: Register secret
+    shell: cat /opt/splunk/etc/system/local/server.conf | grep pass4SymmKey | cut -d ' ' -f 3
+    register: secret
+    become: yes
+
+  - name: Register shcluster_label
+    shell: cat /opt/splunk/etc/system/local/server.conf | grep shcluster_label | cut -d ' ' -f 3
+    register: shcluster_label
+    become: yes
+
+  - name: Configure licensing
+    shell: /opt/splunk/bin/splunk edit licenser-localslave -master_uri self
+    become: yes
+
+  - include_tasks: restart.yml

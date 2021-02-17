@@ -1,0 +1,4 @@
+- name: restart Splunk
+  shell: /opt/splunk/bin/splunk restart
+  become: yes
+  ignore_errors: yes

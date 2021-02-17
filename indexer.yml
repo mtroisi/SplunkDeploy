@@ -1,0 +1,18 @@
+- name: Indexer
+  connection: ssh
+  hosts: indexer
+
+  tasks:
+
+  - set_fact:
+      manager_IP: "{{ groups['manager'][0] }}"
+
+  - include_tasks: install.yml
+
+  - include_tasks: licenseSlave.yml
+
+  - name: Configure as peer
+    shell: /opt/splunk/bin/splunk edit cluster-config -mode peer -master_uri https://{{ manager_IP }}:8089 -replication_port 8080
+    become: yes
+
+  - include_tasks: restart.yml

@@ -1,0 +1,30 @@
+- name: Search Head
+  connection: ssh
+  hosts: search
+
+  vars_prompt:
+
+    - name: artifact_RF
+      prompt: Declare search artifact replication factor
+      private: no
+
+  tasks:
+
+  - set_fact:
+      manager_IP: "{{ groups['manager'][0] }}"
+      secret: "{{lookup('file', './droppings/shcluster.conf') | regex_findall('(?<=pass4SymmKey = )(.*)') }}"
+      shcluster_label: "{{lookup('file', './droppings/shcluster.conf') | regex_findall('(?<=shcluster_label = )(.*)') }}"
+
+  - include_tasks: install.yml
+
+  - include_tasks: licenseSlave.yml
+
+  - name: Configure as search head
+    shell: /opt/splunk/bin/splunk edit cluster-config -mode searchhead -master_uri "https://{{ manager_IP }}:8089"
+    become: yes
+
+  - name: Initialize as cluster member
+    shell: /opt/splunk/bin/splunk init shcluster-config -mgmt_uri "https://{{ ansible_ssh_host }}:8089" -secret {{ secret }} -replication_port 34587 -replication_factor {{ artifact_RF }} -conf_deploy_fetch_url "https://{{ manager_IP }}:8089" -shcluster_label {{ shcluster_label }}
+    become: yes
+  
+  - include_tasks: restart.yml

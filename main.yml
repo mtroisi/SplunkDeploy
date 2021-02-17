@@ -1,0 +1,24 @@
+- name: Splunk Install
+  hosts: all
+
+- import_playbook: manager.yml
+
+- import_playbook: indexer.yml
+
+- import_playbook: searchHead.yml
+
+- import_playbook: captain.yml
+
+- hosts: manager
+  tasks:
+
+  - name: Add search heads as search peer for manager
+    shell: /opt/splunk/bin/splunk add search-server https://{{ item }}:8089 -auth {{ username }}:{{ password }} -remoteUsername {{ username }} -remotePassword {{ password }}
+    loop: "{{ groups['search'] }}"
+    become: yes
+
+
+- hosts: all
+  tasks:
+
+  - include_tasks: restart.yml

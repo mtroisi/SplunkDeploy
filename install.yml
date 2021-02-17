@@ -1,0 +1,35 @@
+- name: Copy Splunk package
+  copy:
+    src: ./droppings/splunk.deb
+    dest: /tmp/splunk.deb
+  
+- name: Install Splunk Enterprise
+  apt:
+    deb: /tmp/splunk.deb
+  become: yes
+
+- name: Copy user seed
+  copy:
+    src: ./droppings/user-seed.conf
+    dest: /opt/splunk/etc/system/local/user-seed.conf
+  become: yes
+
+- set_fact:
+    username: "{{ (lookup('file', './droppings/user-seed.conf') | regex_findall('(?<=USERNAME = )(.*)'))[0] }}"
+    password: "{{ (lookup('file', './droppings/user-seed.conf') | regex_findall('(?<=PASSWORD = )(.*)'))[0] }}"
+
+- name: Start Splunk
+  shell: /opt/splunk/bin/splunk start --accept-license    
+  become: yes
+
+- name: Enable init script
+  shell: /opt/splunk/bin/splunk enable boot-start
+  become: yes
+
+- name: dummy search to create splunk auth token for cli usage
+  shell: /opt/splunk/bin/splunk search 'search' -auth '{{ username }}:{{ password }}'
+  become: yes
+
+- name: Configure licensing
+  shell: /opt/splunk/bin/splunk edit licenser-localslave -master_uri "https://{{ manager_IP }}:8089"
+  become: yes
